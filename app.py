@@ -4,15 +4,30 @@ import requests
 import streamlit as st
 from streamlit_lottie import st_lottie
 from streamlit_option_menu import option_menu
+from streamlit.connections import ExperimentalBaseConnection
+from streamlit_gsheets import GSheetsConnection
 from PIL import Image
+import pandas as pd
+import datetime
 
-st.set_page_config(page_title="My Webpage", page_icon=":tada:", layout="wide")
+if "center" not in st.session_state:
+    layout = "wide"
+else:
+    layout = "centered" if st.session_state.center else "wide"
+
+st.set_page_config(page_title="55 Hair Salon", page_icon=":tada:", layout=layout)
+
+st.checkbox(
+    "Viewing on a mobile?", key="center", value=st.session_state.get("center", False)
+)
 
 def load_lottieurl(url):
     r = requests.get(url)
     if r.status_code != 200:
         return None
     return r.json()
+
+conn = st.connection("gsheets", type=GSheetsConnection)
 
 lottie_location = load_lottieurl("https://lottie.host/90b18f67-1c3b-450c-b0fd-f90e65e4a4c2/Qtp5qm3GVa.json")
 
@@ -177,3 +192,50 @@ if selected == "Contact":
     
 if selected == "Book Now":
     st.title("Book Now")
+    existing_data = conn.read(worksheet="Sheet1",usecols=list(range(7)),ttl=5)
+    existing_data = existing_data.dropna(how="all")
+
+    SERVICES = [
+        "Hair Cut",
+        "Hair Wash",
+        "Hair Colour",
+        "Hair Bleach",
+        "Hair Perm",
+        "Hair Rebond",
+        "Hair Treatment",
+        ]
+
+    with st.form(key="vendor_form"):
+        name=st.text_input(label="Name*")
+        email=st.text_input(label="Email")
+        contact=st.text_input(label="Contact No.*")
+        date=st.date_input("Appointment Date*", value=None)
+        time=st.time_input("Appointment Time*", value=None)
+        services=st.multiselect("Services*", options=SERVICES)
+
+        st.markdown("**required*")
+
+        submit_button = st.form_submit_button(label="Submit Appointment")
+
+        if submit_button:
+            if not name or not contact or not date or not time or not services:
+                st.warning("Ensure all required fields are filled.")
+                st.stop()
+            else:
+                st.write("Appointment Requested, Please Check Your Email or WhatsApp for Confirmation. Thank You.")
+                vendor_data = pd.DataFrame(
+                    [
+                        {
+                            "Name": name,
+                            "Email": email,
+                            "Contact No.": contact,
+                            "Appointment Date": date,
+                            "Appointment Time": time,
+                            "Services": services,
+                        }
+                    ]
+                )
+
+                updated_df = pd.concat([existing_data, vendor_data], ignore_index=True)
+
+                conn.update(worksheet="Sheet1", data=updated_df)
