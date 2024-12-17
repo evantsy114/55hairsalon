@@ -10,12 +10,30 @@ from PIL import Image
 import pandas as pd
 import datetime
 
+
 if "center" not in st.session_state:
     layout = "wide"
 else:
     layout = "centered" if st.session_state.center else "wide"
 
 st.set_page_config(page_title="55 Hair Salon", page_icon=":tada:", layout=layout)
+
+page_bg_img = """
+<style>
+[data-testid="stAppViewContainer"]{
+background-image: url("https://cdn.vectorstock.com/i/500p/84/65/abstract-white-monochrome-background-vector-32028465.jpg")
+}
+
+[data-testid="stHeader"]{
+background-color: rgba(0,0,0,0);
+}
+</style>
+"""
+
+st.markdown(page_bg_img, unsafe_allow_html=True)
+
+with open("styles.css") as f:
+    st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
 
 st.checkbox(
     "Viewing on a mobile?", key="center", value=st.session_state.get("center", False)
